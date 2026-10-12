@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>4 Non Blond Brawl</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: late-night arcade cabinet. Fighter cards up top, one control deck below that becomes picker, hand-off screen or fight log. Deliberately single dark theme. */
+:root{
+  --bg:#13111b; --panel:#1e1a2b; --panel-2:#272238; --line:#3a3350;
+  --ink:#f3eeff; --muted:#a59cbf; --accent:#ffd23f; --hit:#ff4d6d; --heal:#3ddc97;
+  --display:"Bungee", "Impact", "Arial Black", sans-serif;
+  --body:"Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:17px;line-height:1.45;padding:24px 16px 48px;
+  background-image:radial-gradient(circle at 20% -10%, #2b2142 0, transparent 45%),radial-gradient(circle at 110% 30%, #241a33 0, transparent 40%);}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,6vw,48px);line-height:1;margin:0;letter-spacing:.01em;text-wrap:balance;
+  color:var(--accent);text-shadow:3px 3px 0 #b8325a}
+.round{font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0;letter-spacing:.02em}
+.label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* fighter cards */
+.arena{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;position:relative}
+.card.out{opacity:.45;filter:grayscale(.8)}
+.card.out::after{content:"OUT";position:absolute;right:12px;top:10px;font-family:var(--display);color:var(--hit);font-size:20px;transform:rotate(8deg)}
+.who{display:flex;gap:10px;align-items:center;min-width:0}
+.badge{flex:none;width:44px;height:44px;border-radius:8px;display:grid;place-items:center;font-family:var(--display);font-size:20px;color:#14111c;background:var(--c)}
+.who .n{font-weight:700;font-size:19px;line-height:1.1;overflow-wrap:anywhere}
+.who .f{font-size:14px;color:var(--muted)}
+.hpbar{height:10px;background:var(--panel-2);border-radius:5px;overflow:hidden}
+.hpbar i{display:block;height:100%;background:var(--c);transition:width .5s ease}
+.hprow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-height:22px}
+.chip{font-size:12px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:99px;background:var(--panel-2);color:var(--muted);border:1px solid var(--line)}
+.chip.hot{color:#14111c;background:var(--accent);border-color:var(--accent)}
+.chip.lock{color:var(--heal);border-color:var(--heal)}
+
+/* deck */
+.deck{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.moves{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.move{text-align:left;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.move b{font-size:17px}
+.move span{font-size:14px;color:var(--muted)}
+.move.sig b{color:var(--accent)}
+.move[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.move:disabled{opacity:.35;cursor:not-allowed}
+.targets{display:flex;flex-wrap:wrap;gap:8px}
+.tgt{background:var(--panel-2);border:1px solid var(--line);border-radius:99px;padding:6px 14px;font-weight:600;display:flex;gap:8px;align-items:center}
+.tgt i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.tgt[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.go{align-self:flex-start;font-family:var(--display);font-size:18px;background:var(--accent);color:#14111c;border:0;border-radius:8px;padding:12px 22px;box-shadow:3px 3px 0 #b8325a}
+.go:disabled{opacity:.4;box-shadow:none;cursor:not-allowed}
+.ghostbtn{background:none;border:1px solid var(--line);border-radius:8px;padding:10px 16px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* handoff */
+.handoff{text-align:center;align-items:center;padding:40px 20px}
+.handoff .big{font-family:var(--display);font-size:clamp(26px,5vw,38px);color:var(--c)}
+
+/* log */
+.log{display:flex;flex-direction:column;gap:8px}
+.ln{display:flex;gap:10px;align-items:baseline;padding:8px 12px;background:var(--panel-2);border-radius:8px;border-left:3px solid var(--c, var(--line));animation:pop .35s both;animation-delay:calc(var(--i) * .22s)}
+.ln .amt{font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums;margin-left:auto;flex:none}
+.amt.d{color:var(--hit)} .amt.h{color:var(--heal)}
+.ln.sys{background:none;border-left-color:var(--accent);font-weight:700;color:var(--accent)}
+.picks{display:flex;flex-wrap:wrap;gap:6px}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ln{animation:none}.hpbar i{transition:none}}
+
+/* setup */
+.slots{display:flex;flex-direction:column;gap:10px}
+.slot{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;background:var(--panel-2);border-radius:8px;padding:10px}
+.slot input,.slot select{width:100%;min-width:0;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:none;border:0;padding:8px 14px;color:var(--muted);font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#14111c}
+.roster{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.rf{display:flex;gap:12px;padding:12px;background:var(--panel-2);border-radius:8px;min-width:0}
+.rf p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.rf .s{color:var(--accent);font-weight:700}
+.rules{margin:0;padding-left:18px;color:var(--muted);font-size:15px;display:flex;flex-direction:column;gap:4px;max-width:70ch}
+.rules b{color:var(--ink)}
+.err{color:var(--hit);font-weight:600;margin:0}
+@media (max-width:560px){.slot{grid-template-columns:1fr 1fr}.slot .seg{grid-column:1/-1;justify-self:start}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>4 Non Blond Brawl</h1>
+    <div class="round" id="roundLbl">Pick your crew</div>
+  </header>
+  <section class="arena" id="arena" aria-live="polite"></section>
+  <section class="deck" id="deck"></section>
+</div>
+
+<script>
+const FIGHTERS = {
+  gym:   {name:"Gym Bro",     hp:120, color:"#ff8a3d", sig:{key:"preworkout", name:"Pre-workout",     tier:1, target:false, desc:"Do nothing this round. Your next hit deals double."}},
+  ghost: {name:"The Ghost",   hp:90,  color:"#9aa7ff", sig:{key:"vanish",     name:"Seen 3 days ago", tier:1, target:false, cd:2, desc:"Nobody can hit you this round. Every other round."}},
+  romeo: {name:"Romeo",       hp:100, color:"#ff5fa2", sig:{key:"wingman",    name:"Wingman",         tier:1, target:true,  cd:3, desc:"You and your target can't hurt each other this round and next. Both heal 10."}},
+  clown: {name:"The Clown",   hp:100, color:"#3ddc97", sig:{key:"joke",       name:"Bad joke",        tier:0, target:true,  cd:2, desc:"Goes before everything. Cancels your target's move this round."}},
+  car:   {name:"Car Guy",     hp:95,  color:"#ffd23f", sig:{key:"fullsend",   name:"Full send",       tier:2, target:true,  cd:2, desc:"Hits before other attacks. 15 damage, ignores Guard."}},
+  wild:  {name:"The Wildcard",hp:100, color:"#c77dff", sig:{key:"beer",       name:"Hold my beer",    tier:3, target:true,        desc:"Random: 40 to target, heal 25, or 12 to everyone else. Starts with a 5% chance of 15 to yourself, +10% every use, back to 5% after it backfires."}}
+};
+const BEER_BASE = 0.05, BEER_STEP = 0.10, BEER_MAX = 0.95;
+const BASE = {
+  strike:{key:"strike", name:"Strike", tier:3, target:true,  desc:"18 damage."},
+  heavy: {key:"heavy",  name:"Heavy",  tier:4, target:true,  desc:"30 damage, but goes last."},
+  guard: {key:"guard",  name:"Guard",  tier:1, target:false, desc:"Take half damage this round. Not twice in a row."}
+};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = id => document.getElementById(id);
+
+let S = {
+  phase:"setup", count:4,
+  slots:[
+    {name:"Ilir", fighter:"gym",   bot:false},
+    {name:"Arben",fighter:"ghost", bot:true},
+    {name:"Dren", fighter:"romeo", bot:true},
+    {name:"Gent", fighter:"clown", bot:true}
+  ],
+  players:[], round:0, choices:{}, queue:[], cur:null, sel:{move:null,target:null}, log:[], picks:[], error:""
+};
+
+const moveDef = (p, key) => BASE[key] || FIGHTERS[p.fighter].sig;
+function available(p, key){
+  const others = S.players.some(o => o.alive && o.id !== p.id);
+  const d = moveDef(p, key);
+  if (d.target && !others) return false;
+  if (key === "guard") return p.last !== "guard";
+  if (!BASE[key]){
+    if (p.cd > 0) return false;
+    if (key === "preworkout" && p.charged) return false;
+  }
+  return true;
+}
+const moveKeys = p => ["strike","heavy","guard",FIGHTERS[p.fighter].sig.key];
+
+/* ---------- setup ---------- */
+function renderSetup(){
+  $("roundLbl").textContent = "Pick your crew";
+  $("arena").innerHTML = "";
+  const opts = Object.entries(FIGHTERS).map(([k,f]) => `<option value="${k}">${f.name}</option>`).join("");
+  $("deck").innerHTML = `
+    <div class="row" style="justify-content:space-between">
+      <h2>Who's fighting</h2>
+      <div class="seg" role="group" aria-label="Number of players">
+        ${[2,3,4].map(n => `<button data-count="${n}" aria-pressed="${S.count===n}">${n} players</button>`).join("")}
+      </div>
+    </div>
+    <div class="slots">
+      ${S.slots.slice(0,S.count).map((s,i) => `
+        <div class="slot">
+          <input id="name${i}" value="${esc(s.name)}" maxlength="14" aria-label="Player ${i+1} name">
+          <select id="fighter${i}" aria-label="Player ${i+1} fighter">${opts}</select>
+          <div class="seg" role="group" aria-label="Player ${i+1} control">
+            <button data-slot="${i}" data-bot="0" aria-pressed="${!s.bot}">Human</button>
+            <button data-slot="${i}" data-bot="1" aria-pressed="${s.bot}">Bot</button>
+          </div>
+        </div>`).join("")}
+    </div>
+    ${S.error ? `<p class="err">${esc(S.error)}</p>` : ""}
+    <button class="go" id="start">Start the brawl</button>
+    <div class="label">How a round works</div>
+    <ul class="rules">
+      <li>Everyone <b>secretly</b> picks a move and a target. Humans pass the device; others look away.</li>
+      <li>Everything resolves together in this order: <b>Bad joke</b>, then <b>Guard and specials</b>, then <b>Full send</b>, then <b>Strike</b>, then <b>Heavy</b>.</li>
+      <li>Hit 0 HP and you're out. Last one standing wins. If everyone left goes down in the same round, whoever had more HP at the start of that round wins.</li>
+    </ul>
+    <div class="label">The roster</div>
+    <div class="roster">
+      ${Object.values(FIGHTERS).map(f => `
+        <div class="rf"><div class="badge" style="--c:${f.color}">${f.name.replace("The ","")[0]}</div>
+        <div style="min-width:0"><b>${f.name}</b> <span class="label">${f.hp} HP</span>
+        <p><span class="s">${f.sig.name}:</span> ${f.sig.desc}</p></div></div>`).join("")}
+    </div>`;
+  S.slots.slice(0,S.count).forEach((s,i) => {
+    $("fighter"+i).value = s.fighter;
+    $("name"+i).oninput = e => s.name = e.target.value;
+    $("fighter"+i).onchange = e => s.fighter = e.target.value;
+  });
+  document.querySelectorAll("[data-count]").forEach(b => b.onclick = () => { S.count = +b.dataset.count; S.error=""; renderSetup(); });
+  document.querySelectorAll("[data-slot]").forEach(b => b.onclick = () => { S.slots[+b.dataset.slot].bot = b.dataset.bot === "1"; renderSetup(); });
+  $("start").onclick = startGame;
+}
+
+function startGame(){
+  const slots = S.slots.slice(0,S.count);
+  const fs = slots.map(s => s.fighter);
+  if (new Set(fs).size !== fs.length){ S.error = "Two players picked the same fighter. Everyone needs a different one."; return renderSetup(); }
+  if (slots.some(s => !s.name.trim())){ S.error = "Every player needs a name."; return renderSetup(); }
+  S.error = "";
+  S.players = slots.map((s,i) => ({id:i, name:s.name.trim(), fighter:s.fighter, bot:s.bot,
+    hp:FIGHTERS[s.fighter].hp, max:FIGHTERS[s.fighter].hp, alive:true, cd:0, charged:false, last:null, beer:BEER_BASE}));
+  S.pacts = [];
+  S.round = 0;
+  newRound();
+}
+
+/* ---------- rounds ---------- */
+function newRound(){
+  S.round++;
+  S.choices = {};
+  S.players.filter(p => p.alive && p.bot).forEach(p => S.choices[p.id] = botPick(p));
+  S.queue = S.players.filter(p => p.alive && !p.bot).map(p => p.id);
+  const humans = S.queue.length;
+  if (!humans){ resolve(); return; }
+  S.cur = S.queue.shift();
+  S.phase = humans > 1 ? "handoff" : "pick";
+  S.sel = {move:null, target:null};
+  render();
+}
+
+function botPick(p){
+  const keys = moveKeys(p).filter(k => available(p,k));
+  const w = {strike:3, heavy:2, guard: p.hp < p.max*0.4 ? 3 : 1};
+  const pool = [];
+  keys.forEach(k => { for (let i=0;i<(w[k]??2);i++) pool.push(k); });
+  const move = pool[Math.floor(Math.random()*pool.length)];
+  let target = null;
+  if (moveDef(p,move).target){
+    const others = S.players.filter(o => o.alive && o.id !== p.id);
+    target = Math.random() < .5
+      ? others.reduce((a,b) => b.hp > a.hp ? b : a).id
+      : others[Math.floor(Math.random()*others.length)].id;
+  }
+  return {move, target};
+}
+
+function lockIn(){
+  S.choices[S.cur] = {...S.sel};
+  if (S.queue.length){
+    S.cur = S.queue.shift();
+    S.phase = "handoff";
+    S.sel = {move:null, target:null};
+    render();
+  } else resolve();
+}
+
+/* ---------- resolution ---------- */
+function resolve(){
+  const P = S.players, L = [], byId = id => P[id];
+  const line = (p, text, amt, kind) => L.push({c: p ? FIGHTERS[p.fighter].color : null, text, amt, kind});
+  P.forEach(p => { p.guarding=false; p.vanished=false; p.cancelled=false; p.startHp = p.alive ? p.hp : 0; });
+  const startedAlive = P.filter(p => p.alive);
+  S.picks = P.filter(p => p.alive).map(p => {
+    const c = S.choices[p.id]; const d = moveDef(p,c.move);
+    return {c:FIGHTERS[p.fighter].color, text:`${p.name}: ${d.name}${c.target!=null ? " → "+byId(c.target).name : ""}`};
+  });
+  const pacted = (a,b) => S.pacts.some(x => (x.a===a&&x.b===b)||(x.a===b&&x.b===a));
+
+  function hit(src, tgt, amt, opts={}){
+    if (!tgt.alive){ line(src, `${src.name} swings at ${tgt.name}, who is already out.`); return; }
+    if (tgt.vanished && tgt !== src){ line(src, `${src.name} goes for ${tgt.name}. Left on read. Miss.`); return; }
+    if (pacted(src.id, tgt.id)){ line(src, `${src.name} can't bring himself to hit his wingman ${tgt.name}.`); return; }
+    let note = "";
+    if (src.charged && !opts.self){ amt *= 2; src.charged = false; note = " (pre-workout kicks in)"; }
+    if (tgt.guarding && !opts.pierce){ amt = Math.ceil(amt/2); note += ` (${tgt.name} guarded)`; }
+    tgt.hp = Math.max(0, tgt.hp - amt);
+    line(src, `${opts.verb || src.name+" hits "+tgt.name}${note}.`, "−"+amt, "d");
+  }
+  const heal = (p, n) => { const before=p.hp; p.hp = Math.min(p.max, p.hp+n); return p.hp-before; };
+  const knockouts = () => P.forEach(p => { if (p.alive && p.hp <= 0){ p.alive=false; L.push({c:FIGHTERS[p.fighter].color, text:`${p.name} is out.`, kind:"ko"}); }});
+  const acts = tier => P.filter(p => p.alive && !p.cancelled && moveDef(p, S.choices[p.id].move).tier === tier);
+
+  // tier 0: bad joke
+  acts(0).forEach(p => { const t = byId(S.choices[p.id].target);
+    if (t.alive){ t.cancelled = true; line(p, `${p.name} tells ${t.name} a terrible joke. ${t.name} is too busy cringing to act.`); } });
+
+  // tier 1: guard & specials
+  acts(1).forEach(p => { const c = S.choices[p.id];
+    if (c.move==="guard"){ p.guarding = true; line(p, `${p.name} puts his guard up.`); }
+    else if (c.move==="vanish"){ p.vanished = true; line(p, `${p.name} goes dark. Nobody can reach him this round.`); }
+    else if (c.move==="preworkout"){ p.charged = true; line(p, `${p.name} slams a pre-workout. Next hit is doubled.`); }
+    else if (c.move==="wingman"){ const t = byId(c.target);
+      S.pacts.push({a:p.id, b:t.id, turns:2});
+      const h1 = heal(p,10), h2 = heal(t,10);
+      line(p, `${p.name} makes ${t.name} his wingman. No hits between them for 2 rounds.`, `+${h1}/+${h2}`, "h"); }
+  });
+
+  // tier 2: full send
+  acts(2).forEach(p => { const t = byId(S.choices[p.id].target);
+    hit(p, t, 15, {pierce:true, verb:`${p.name} full-sends into ${t.name}, straight through any guard`}); });
+  knockouts();
+
+  // tier 3: strike, beer
+  acts(3).forEach(p => { const c = S.choices[p.id]; const t = byId(c.target);
+    if (c.move==="strike") hit(p, t, 18);
+    else {
+      // backfire chance grows +10 points per use, resets to 5% after a backfire;
+      // the other three outcomes split the rest evenly
+      const risk = p.beer, x = Math.random();
+      const r = x < risk ? 3 : Math.floor((x - risk) / (1 - risk) * 3);
+      p.beer = r === 3 ? BEER_BASE : Math.min(BEER_MAX, risk + BEER_STEP);
+      if (r===0) hit(p, t, 40, {verb:`Hold my beer: ${p.name} launches at ${t.name}`});
+      else if (r===1) line(p, `Hold my beer: ${p.name} drinks it himself and feels great.`, "+"+heal(p,25), "h");
+      else if (r===2) P.filter(o => o.alive && o!==p).forEach(o => hit(p, o, 12, {verb:`Hold my beer: ${p.name} sprays the room and catches ${o.name}`}));
+      else { p.hp = Math.max(0,p.hp-15); line(p, `Hold my beer: ${p.name} trips over his own feet.`, "−15", "d"); }
+    }
+  });
+  knockouts();
+
+  // tier 4: heavy
+  acts(4).forEach(p => hit(p, byId(S.choices[p.id].target), 30, {verb:`${p.name} winds up a heavy on ${byId(S.choices[p.id].target).name}`}));
+  knockouts();
+
+  if (!L.length) line(null, "Nothing happens. Everyone stares at each other.");
+
+  // end of round upkeep
+  P.forEach(p => { const c = S.choices[p.id]; if (!c) return;
+    p.last = c.move;
+    const sigCd = FIGHTERS[p.fighter].sig.cd;
+    if (!BASE[c.move] && sigCd) p.cd = sigCd - 1; else if (p.cd > 0) p.cd--; });
+  S.pacts.forEach(x => x.turns--); S.pacts = S.pacts.filter(x => x.turns > 0);
+
+  let alive = P.filter(p => p.alive);
+  if (!alive.length){
+    // tiebreak: whoever had the most HP going into the round survives on 1 HP
+    const top = Math.max(...startedAlive.map(p => p.startHp));
+    const leaders = startedAlive.filter(p => p.startHp === top);
+    if (leaders.length === 1){
+      const w = leaders[0]; w.alive = true; w.hp = 1;
+      L.push({c:FIGHTERS[w.fighter].color, text:`Everyone went down together. ${w.name} had the most HP coming in, so he gets back up on 1 HP.`});
+      alive = [w];
+    }
+  }
+  if (alive.length <= 1){
+    L.push({kind:"sys", text: alive.length ? `${alive[0].name} wins the brawl.` : "Everyone went down together with the same HP. It's a draw."});
+    S.phase = "over";
+  } else S.phase = "reveal";
+  S.log = L;
+  render();
+}
+
+/* ---------- rendering ---------- */
+function renderArena(){
+  $("arena").innerHTML = S.players.map(p => {
+    const f = FIGHTERS[p.fighter];
+    const chips = [];
+    if (p.charged) chips.push(`<span class="chip hot">Charged ×2</span>`);
+    S.pacts.filter(x => x.a===p.id||x.b===p.id).forEach(x => chips.push(`<span class="chip">Wingman: ${esc(S.players[x.a===p.id?x.b:x.a].name)}</span>`));
+    if (p.cd > 0 && f.sig.cd) chips.push(`<span class="chip">${f.sig.name} ready in ${p.cd}</span>`);
+    if (p.last === "guard") chips.push(`<span class="chip">Can't guard</span>`);
+    if (p.fighter === "wild" && p.alive) chips.push(`<span class="chip ${p.beer > BEER_BASE ? "hot" : ""}">Backfire ${Math.round(p.beer*100)}%</span>`);
+    if (S.phase !== "setup" && S.phase !== "reveal" && S.phase !== "over" && p.alive && S.choices[p.id]) chips.push(`<span class="chip lock">Locked in</span>`);
+    return `<article class="card ${p.alive?"":"out"}" style="--c:${f.color}">
+      <div class="who"><div class="badge">${esc(p.name[0].toUpperCase())}</div>
+        <div style="min-width:0"><div class="n">${esc(p.name)}</div><div class="f">${f.name}${p.bot?" · bot":""}</div></div></div>
+      <div class="hpbar" role="meter" aria-label="${esc(p.name)} health" aria-valuemin="0" aria-valuemax="${p.max}" aria-valuenow="${p.hp}"><i style="width:${p.hp/p.max*100}%"></i></div>
+      <div class="hprow"><span>HP</span><span>${p.hp} / ${p.max}</span></div>
+      <div class="chips">${chips.join("")}</div>
+    </article>`;
+  }).join("");
+}
+
+function render(){
+  if (S.phase === "setup") return renderSetup();
+  $("roundLbl").textContent = `Round ${S.round}`;
+  renderArena();
+  const deck = $("deck");
+  const p = S.players[S.cur];
+
+  if (S.phase === "handoff"){
+    deck.className = "deck handoff";
+    deck.innerHTML = `<div class="label">Pass the device to</div>
+      <div class="big" style="--c:${FIGHTERS[p.fighter].color}">${esc(p.name)}</div>
+      <p style="margin:0;color:var(--muted)">Everyone else, look away.</p>
+      <button class="go" id="ready">I'm ${esc(p.name)}, show my moves</button>`;
+    $("ready").onclick = () => { S.phase = "pick"; render(); };
+    $("ready").focus();
+    return;
+  }
+  deck.className = "deck";
+
+  if (S.phase === "pick"){
+    const keys = moveKeys(p);
+    const d = S.sel.move && moveDef(p, S.sel.move);
+    const ready = S.sel.move && (!d.target || S.sel.target != null);
+    deck.innerHTML = `
+      <div class="row" style="justify-content:space-between"><h2 style="color:${FIGHTERS[p.fighter].color}">${esc(p.name)}, your move</h2>
+        <span class="label">${S.queue.length ? S.queue.length+" more to pick" : "last to pick"}</span></div>
+      <div class="moves">${keys.map(k => { const m = moveDef(p,k); const ok = available(p,k);
+        return `<button class="move ${BASE[k]?"":"sig"}" data-move="${k}" aria-pressed="${S.sel.move===k}" ${ok?"":"disabled"}>
+          <b>${m.name}</b><span>${k === "beer" ? `Random: 40 to target, heal 25, or 12 to everyone else. Backfire chance right now: ${Math.round(p.beer*100)}%.` : m.desc}</span></button>`; }).join("")}</div>
+      ${d && d.target ? `<div class="label">Target</div><div class="targets">
+        ${S.players.filter(o => o.alive && o.id!==p.id).map(o => `<button class="tgt" data-t="${o.id}" style="--c:${FIGHTERS[o.fighter].color}" aria-pressed="${S.sel.target===o.id}"><i></i>${esc(o.name)}</button>`).join("")}</div>` : ""}
+      <button class="go" id="lock" ${ready?"":"disabled"}>Lock it in</button>`;
+    deck.querySelectorAll("[data-move]").forEach(b => b.onclick = () => { S.sel.move = b.dataset.move; if (!moveDef(p,S.sel.move).target) S.sel.target = null; render(); });
+    deck.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { S.sel.target = +b.dataset.t; render(); });
+    $("lock").onclick = lockIn;
+    return;
+  }
+
+  // reveal / over
+  deck.innerHTML = `
+    <div class="label">Everyone picked</div>
+    <div class="picks">${S.picks.map(x => `<span class="chip" style="color:${x.c};border-color:${x.c}">${esc(x.text)}</span>`).join("")}</div>
+    <div class="label">What happened</div>
+    <div class="log">${S.log.map((l,i) => `<div class="ln ${l.kind==="sys"?"sys":""}" style="--i:${i};${l.c?`--c:${l.c}`:""}">
+      <span>${esc(l.text)}</span>${l.amt?`<span class="amt ${l.kind}">${l.amt}</span>`:""}</div>`).join("")}</div>
+    <div class="row">${S.phase==="over"
+      ? `<button class="go" id="again">Rematch</button><button class="ghostbtn" id="setup">Change fighters</button>`
+      : `<button class="go" id="next">Next round</button>`}</div>`;
+  if ($("next")) $("next").onclick = newRound;
+  if ($("again")) $("again").onclick = startGame;
+  if ($("setup")) $("setup").onclick = () => { S.phase = "setup"; render(); };
+}
+
+render();
+</script>
+</body>
+</html>
